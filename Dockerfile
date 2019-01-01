@@ -7,8 +7,6 @@ ENV PATH=$PATH:/xtensa-esp32-elf/bin:/esp-idf/tools
 # Pull in the archive of the toolchain. Adding it from context, instead of using a URL, to more easily version the toolchain.
 ADD esp32-elf-linux64-toolchain.tar.gz /
 
-#RUN apk add --no-cache --update git cmake make build-base gcc g++ linux-headers openssl openssl-dev openjdk8 gradle flex bison gperf grep gettext ncurses-dev python python-dev automake texinfo help2man libtool gawk py-cryptography autoconf sed
-
 # Install some pre-req packages, including some things from EPEL like cmake 3+ and pip
 RUN yum install -y epel-release && \
     yum update -y && \
@@ -38,10 +36,6 @@ RUN git clone --recursive --depth 1 -b v3.1.1 https://github.com/espressif/esp-i
 # Installing required packages for the IDF
 RUN pip install --upgrade pip && \
     pip install -r /esp-idf/requirements.txt
-
-#RUN git clone --depth 1 -b xtensa-1.22.x https://github.com/espressif/crosstool-NG.git /crosstool-NG
-#WORKDIR /crosstool-NG
-#RUN ./bootstrap && ./configure --enable-local && make install && ./ct-ng xtensa-esp32-elf && ./ct-ng build
 
 #RUN git clone --depth 1 --recursive https://github.com/eProsima/Micro-XRCE-DDS.git /Micro-XRCE-DDS
 #WORKDIR /Micro-XRCE-DDS/build
