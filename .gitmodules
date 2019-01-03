@@ -4,3 +4,6 @@
 [submodule "components/xrce-dds-client/xrce-dds-client"]
 	path = components/xrce-dds-client/xrce-dds-client
 	url = https://github.com/eProsima/Micro-XRCE-DDS-Client.git
+[submodule "components/microcdr/microcdr"]
+	path = components/microcdr/microcdr
+	url = https://github.com/eProsima/Micro-CDR.git
