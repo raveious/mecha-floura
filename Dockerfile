@@ -15,6 +15,7 @@ RUN yum install -y epel-release && \
         make \
         cmake3 \
         gcc \
+        gcc-c++ \
         wget \
         ncurses-devel \
         flex \
