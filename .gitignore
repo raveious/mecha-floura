@@ -1,1 +1,6 @@
-*/build/*
+# Ignore all of the build output
+build/*
+
+# Ignore the SDK configuration because it contains things like the WiFi password...
+sdkconfig
+sdkconfig.*
