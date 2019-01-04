@@ -12,6 +12,7 @@ RUN yum install -y epel-release && \
     yum update -y && \
     yum install -y \
         git \
+        vim \
         make \
         cmake3 \
         gcc \
