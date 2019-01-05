@@ -1,4 +1,4 @@
-set(COMPONENT_ADD_INCLUDEDIRS microcdr/include microcdr/include/ucdr microcdr/include/ucdr/types)
+set(COMPONENT_ADD_INCLUDEDIRS microcdr/include include)
 
 file(GLOB_RECURSE COMPONENT_SRCS microcdr/src/c/*.c)
 

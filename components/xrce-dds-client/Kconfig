@@ -69,18 +69,15 @@ config SERIALIZATION_ENDIANNESS
 menu "Transport MTU"
 config UDP_TRANSPORT_MTU
     int "MTU value for when using UDP as a transport."
-    depends on PROFILE_UDP_TRANSPORT
     default "512"
 
 config TCP_TRANSPORT_MTU
     int "MTU value for when using TCP as a transport."
-    depends on PROFILE_TCP_TRANSPORT
     default "512"
 
 
 config SERIAL_TRANSPORT_MTU
     int "MTU value for when using Serial as a transport."
-    depends on PROFILE_SERIAL_TRANSPORT
     default "512"
 endmenu
 
