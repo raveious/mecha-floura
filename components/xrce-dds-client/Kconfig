@@ -32,6 +32,14 @@ config PROFILE_SERIAL_TRANSPORT
     bool "Enable SERIAL transport."
     default y
 
+config VERBOSE_MESSAGE
+    bool "Enable verbose message logging"
+    default n
+
+config VERBOSE_SERIALIZATION
+    bool "Enable verbose serialization logging"
+    default n
+
 config MAX_OUTPUT_BEST_EFFORT_STREAMS
     int "Max number of Best Effort output streams."
     default "1"

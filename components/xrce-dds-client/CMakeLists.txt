@@ -1,3 +1,5 @@
+set(CONFIG_PROFILE_COMMON_CREATE_ENTITIES CONFIG_PROFILE_CREATE_ENTITIES_REF OR CONFIG_PROFILE_CREATE_ENTITIES_XML)
+
 set(COMPONENT_ADD_INCLUDEDIRS xrce-dds-client/include include)
 
 #file(GLOB_RECURSE COMPONENT_SRCS xrce-dds-client/src/c/*.c)
@@ -12,6 +14,8 @@ foreach(TRANS_TYPE ${TRANSPORT_TYPES})
             xrce-dds-client/src/c/profile/transport/${TT}/${TT}_transport.c
             xrce-dds-client/src/c/profile/transport/${TT}/${TT}_transport_linux.c
             )
+    else()
+        set(${TRANS_TYPE}_SRCS )
     endif()
 endforeach()
 
@@ -19,6 +23,10 @@ endforeach()
 if(CONFIG_PROFILE_DISCOVERY AND CONFIG_PROFILE_UDP_TRANSPORT)
     set(UDP_DISCOVERY_SRCS xrce-dds-client/src/c/profile/discovery/transport/udp_transport_linux_datagram.c)
 endif()
+
+set(PORT_SRCS
+    src/poll.c
+    )
 
 # Other sources
 set(COMPONENT_SRCS
@@ -38,7 +46,7 @@ set(COMPONENT_SRCS
     xrce-dds-client/src/c/core/serialization/xrce_header.c
     xrce-dds-client/src/c/core/serialization/xrce_subheader.c
     xrce-dds-client/src/c/util/time.c
-    $<$<OR:$<BOOL:${VERBOSE_MESSAGE}>,$<BOOL:${VERBOSE_SERIALIZATION}>>:xrce-dds-client/src/c/core/log/log.c>
+    $<$<OR:$<BOOL:${CONFIG_VERBOSE_MESSAGE}>,$<BOOL:${CONFIG_VERBOSE_SERIALIZATION}>>:src/c/core/log/log.c>
     $<$<BOOL:${CONFIG_PROFILE_COMMON_CREATE_ENTITIES}>:xrce-dds-client/src/c/profile/session/common_create_entities.c>
     $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_REF}>:xrce-dds-client/src/c/profile/session/create_entities_ref.c>
     $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_XML}>:xrce-dds-client/src/c/profile/session/create_entities_xml.c>
@@ -49,6 +57,7 @@ set(COMPONENT_SRCS
     ${UDP_SRCS}
     ${TCP_SRCS}
     ${SERIAL_SRCS}
+    ${PORT_SRCS}
     )
 
 set(COMPONENT_PRIV_REQUIRES lwip microcdr newlib)
