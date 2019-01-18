@@ -45,9 +45,16 @@ void app_main(void)
 
     uxrAgentAddress chosen;
 
-    if(uxr_discovery_agents_multicast(10, 1000, on_agent_found, NULL, &chosen)) {
+    if(uxr_discovery_agents_multicast(CONFIG_UXR_DISCOVERY_ATTEMPTS, CONFIG_UXR_DISCOVERY_PERIOD, on_agent_found, NULL, &chosen)) {
         // True -> The user returns true in the callback.
         printf("Chosen agent => ip: %s, port: %d\n", chosen.ip, chosen.port);
+    } else {
+        printf("Restarting now.\n");
+        fflush(stdout);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        esp_restart();
     }
 
     fflush(stdout);
