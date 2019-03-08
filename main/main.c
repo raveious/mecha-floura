@@ -5,22 +5,30 @@
 #include "esp_event_loop.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
-#include <uxr/client/client.h>
+#include <dds_comms.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
+    switch (event->event_id) {
+        case SYSTEM_EVENT_STA_START:
+            esp_wifi_connect();
+            break;
+        case SYSTEM_EVENT_STA_CONNECTED:
+            /* enable ipv6 */
+            tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_STA);
+            break;
+        case SYSTEM_EVENT_STA_DISCONNECTED:
+            /* This is a workaround as ESP32 WiFi libs don't currently auto-reassociate. */
+            esp_wifi_connect();
+            break;
+        default:
+            break;
+    }
+    
     return ESP_OK;
-}
-
-bool on_agent_found(const uxrAgentAddress* address, int64_t timestamp, void* args) {
-    (void) timestamp; (void) args;
-
-    printf("Found agent => ip: %s, port: %d\n", address->ip, address->port);
-
-    return false;
 }
 
 void app_main(void)
@@ -43,21 +51,7 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
-    uxrAgentAddress chosen;
-
-    if(uxr_discovery_agents_multicast(CONFIG_UXR_DISCOVERY_ATTEMPTS, CONFIG_UXR_DISCOVERY_PERIOD, on_agent_found, NULL, &chosen)) {
-        // True -> The user returns true in the callback.
-        printf("Chosen agent => ip: %s, port: %d\n", chosen.ip, chosen.port);
-    } else {
-        printf("Restarting now.\n");
-        fflush(stdout);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        esp_restart();
-    }
-
-    fflush(stdout);
+    dds_task();
 
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
     int level = 0;

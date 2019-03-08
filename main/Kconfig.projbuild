@@ -12,6 +12,25 @@ config ESP_WIFI_PASSWORD
     help
 	WiFi password (WPA or WPA2) for the example to use.
 
+choice UXR_DISCOVERY_TYPE
+    prompt "Discovery via Unicast or Multicast"
+    default UXR_DISCOVERY_TYPE_UNICAST
+    config UXR_DISCOVERY_TYPE_UNICAST
+        bool "Unicast"
+    config UXR_DISCOVERY_TYPE_MULTICAST
+        bool "Multicast"
+endchoice
+
+config UXR_DISCOVERY_PORT
+    depends on UXR_DISCOVERY_TYPE_UNICAST
+    int "Port to use for discovery"
+    default 2000
+    range 1 65535
+
+config UXR_DISCOVERY_IP
+    depends on UXR_DISCOVERY_TYPE_UNICAST
+    string "IP address to attempt discovery"
+
 config UXR_DISCOVERY_ATTEMPTS
     int "Number of attempts to try and find an XRCE Agent"
     default 10
