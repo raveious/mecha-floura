@@ -32,7 +32,7 @@ RUN yum install -y epel-release && \
 RUN ln -sv /usr/bin/cmake3 /usr/bin/cmake
 
 # Cloning IDF
-RUN git clone --recursive --depth 1 -b v3.2 https://github.com/espressif/esp-idf.git /esp-idf
+RUN git clone --recursive --depth 1 --branch v3.3-beta3 https://github.com/espressif/esp-idf.git /esp-idf
 
 # Installing required packages for the IDF
 RUN pip install --upgrade pip && \

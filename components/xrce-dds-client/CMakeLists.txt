@@ -24,10 +24,6 @@ if(CONFIG_PROFILE_DISCOVERY AND CONFIG_PROFILE_UDP_TRANSPORT)
     set(UDP_DISCOVERY_SRCS xrce-dds-client/src/c/profile/discovery/transport/udp_transport_linux_datagram.c)
 endif()
 
-set(PORT_SRCS
-    src/poll.c
-    )
-
 # Other sources
 set(COMPONENT_SRCS
     xrce-dds-client/src/c/core/communication/serial_protocol.c
@@ -57,7 +53,6 @@ set(COMPONENT_SRCS
     ${UDP_SRCS}
     ${TCP_SRCS}
     ${SERIAL_SRCS}
-    ${PORT_SRCS}
     )
 
 set(COMPONENT_PRIV_REQUIRES lwip microcdr newlib)
