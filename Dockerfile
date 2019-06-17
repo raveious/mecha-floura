@@ -16,6 +16,7 @@ RUN yum install -y epel-release && \
         make \
         cmake3 \
         gcc \
+        gcc-c++ \
         wget \
         ncurses-devel \
         flex \
@@ -24,12 +25,18 @@ RUN yum install -y epel-release && \
         ninja-build \
         ccache \
         screen \
+        unzip \
+        java-1.8.0-openjdk \
+        java-1.8.0-openjdk-devel \
         python \
         python-pip && \
     yum clean all
 
 # Need newer version of cmake to be used in the place of the older version of cmake.
 RUN ln -sv /usr/bin/cmake3 /usr/bin/cmake
+
+# Get and install Gradle
+RUN wget https://services.gradle.org/distributions/gradle-4.10.2-bin.zip && unzip gradle-4.10.2-bin.zip -d /opt/gradle/
 
 # Cloning IDF
 RUN git clone --recursive --depth 1 --branch v3.3-beta3 https://github.com/espressif/esp-idf.git /esp-idf
@@ -38,8 +45,15 @@ RUN git clone --recursive --depth 1 --branch v3.3-beta3 https://github.com/espre
 RUN pip install --upgrade pip && \
     pip install -r /esp-idf/requirements.txt
 
-#RUN git clone --depth 1 --recursive https://github.com/eProsima/Micro-XRCE-DDS.git /Micro-XRCE-DDS
-#WORKDIR /Micro-XRCE-DDS/build
-#RUN cmake -DTHIRDPARTY=ON -DCOMPILE_EXAMPLES=ON .. && make && make install
+RUN git clone --depth 1 --recursive https://github.com/eProsima/Micro-XRCE-DDS-Gen.git /Micro-XRCE-DDS-Gen
+WORKDIR /Micro-XRCE-DDS-Gen
+
+ENV GRADLE_HOME=/opt/gradle/gradle-4.10.2
+ENV PATH=$PATH:$GRADLE_HOME/bin
+ENV CFLAGS='-std=c99'
+
+RUN gradle build --stacktrace --info && cp /Micro-XRCE-DDS-Gen/share/microxrcedds/microxrceddsgen.jar /usr/local/lib
+
+COPY scripts/microxrceddsgen /usr/local/bin
 
 CMD /bin/bash
