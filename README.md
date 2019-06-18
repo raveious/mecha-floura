@@ -12,5 +12,5 @@ $ docker build -t mecha-floura .
 
 To use the development environment after building it:
 ```
-$ docker run -it --rm --device /dev/ttyUSB0 -v $(pwd):/mecha-floura mecha-floura
+$ docker run -it --rm -u $UID:$GID --device /dev/ttyUSB0 -v $(pwd):/mecha-floura mecha-floura
 ```
