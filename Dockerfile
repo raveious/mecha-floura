@@ -7,6 +7,9 @@ ENV PATH=$PATH:/xtensa-esp32-elf/bin:/esp-idf/tools
 # Pull in the archive of the toolchain. Adding it from context, instead of using a URL, to more easily version the toolchain.
 ADD esp32-elf-linux64-toolchain.tar.gz /
 
+# Bringing in modified microxrceddsgen script with a fixed path in it, instead of the one from the repository
+COPY scripts/microxrceddsgen /usr/local/bin
+
 # Install some pre-req packages, including some things from EPEL like cmake 3+ and pip
 RUN yum install -y epel-release && \
     yum update -y && \
@@ -50,10 +53,7 @@ WORKDIR /Micro-XRCE-DDS-Gen
 
 ENV GRADLE_HOME=/opt/gradle/gradle-4.10.2
 ENV PATH=$PATH:$GRADLE_HOME/bin
-ENV CFLAGS='-std=c99'
 
 RUN gradle build --stacktrace --info && cp /Micro-XRCE-DDS-Gen/share/microxrcedds/microxrceddsgen.jar /usr/local/lib
-
-COPY scripts/microxrceddsgen /usr/local/bin
 
 CMD /bin/bash
