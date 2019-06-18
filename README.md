@@ -6,6 +6,7 @@ Mechanical floura project
 Environment was based on instructions on the [getting started guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started-cmake/get-started-devkitc.html)
 
 To build the development environment:
+
 bash```
 $ docker build -t mecha-floura .
 ```
