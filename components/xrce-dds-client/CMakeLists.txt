@@ -21,12 +21,11 @@ endforeach()
 
 # Transport discovery source.
 if(CONFIG_PROFILE_DISCOVERY AND CONFIG_PROFILE_UDP_TRANSPORT)
-    set(UDP_DISCOVERY_SRCS xrce-dds-client/src/c/profile/discovery/transport/udp_transport_linux_datagram.c)
+    set(UDP_DISCOVERY_SRCS xrce-dds-client/src/c/profile/discovery/transport/udp_transport_datagram_linux.c)
 endif()
 
 # Other sources
 set(COMPONENT_SRCS
-    xrce-dds-client/src/c/core/communication/serial_protocol.c
     xrce-dds-client/src/c/core/session/stream/input_best_effort_stream.c
     xrce-dds-client/src/c/core/session/stream/input_reliable_stream.c
     xrce-dds-client/src/c/core/session/stream/output_best_effort_stream.c
@@ -42,12 +41,12 @@ set(COMPONENT_SRCS
     xrce-dds-client/src/c/core/serialization/xrce_header.c
     xrce-dds-client/src/c/core/serialization/xrce_subheader.c
     xrce-dds-client/src/c/util/time.c
-    $<$<OR:$<BOOL:${CONFIG_VERBOSE_MESSAGE}>,$<BOOL:${CONFIG_VERBOSE_SERIALIZATION}>>:src/c/core/log/log.c>
-    $<$<BOOL:${CONFIG_PROFILE_COMMON_CREATE_ENTITIES}>:xrce-dds-client/src/c/profile/session/common_create_entities.c>
-    $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_REF}>:xrce-dds-client/src/c/profile/session/create_entities_ref.c>
-    $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_XML}>:xrce-dds-client/src/c/profile/session/create_entities_xml.c>
-    $<$<BOOL:${CONFIG_PROFILE_READ_ACCESS}>:xrce-dds-client/src/c/profile/session/read_access.c>
-    $<$<BOOL:${CONFIG_PROFILE_WRITE_ACCESS}>:xrce-dds-client/src/c/profile/session/write_access.c>
+    $<$<OR:$<BOOL:${CONFIG_VERBOSE_MESSAGE}>,$<BOOL:${CONFIG_VERBOSE_SERIALIZATION}>>:src/core/log/log.c>
+    $<$<BOOL:${CONFIG_PROFILE_COMMON_CREATE_ENTITIES}>:xrce-dds-client/src/c/core/session/common_create_entities.c>
+    $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_REF}>:xrce-dds-client/src/c/core/session/create_entities_ref.c>
+    $<$<BOOL:${CONFIG_PROFILE_CREATE_ENTITIES_XML}>:xrce-dds-client/src/c/core/session/create_entities_xml.c>
+    $<$<BOOL:${CONFIG_PROFILE_READ_ACCESS}>:xrce-dds-client/src/c/core/session/read_access.c>
+    $<$<BOOL:${CONFIG_PROFILE_WRITE_ACCESS}>:xrce-dds-client/src/c/core/session/write_access.c>
     $<$<BOOL:${CONFIG_PROFILE_DISCOVERY}>:xrce-dds-client/src/c/profile/discovery/discovery.c>
     ${UDP_DISCOVERY_SRCS}
     ${UDP_SRCS}

@@ -22,8 +22,10 @@
 #define MICROCDR_VERSION_STR "1.0.0"
 
 // ucdrEndianness defines
-#ifndef __BIG_ENDIAN__
-#define __BIG_ENDIAN__ CONFIG_BIG_ENDIANNESSS
+#ifdef CONFIG_BIG_ENDIANNESSS
+#define UCDR_MACHINE_ENDIANNESS 1
+#else
+#define UCDR_MACHINE_ENDIANNESS 0
 #endif
 
 #endif // _MICROCDR_CONFIG_H_
