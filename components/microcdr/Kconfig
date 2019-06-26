@@ -1,7 +1,0 @@
-menu "Micro CDR"
-
-config BIG_ENDIANNESSS
-    bool "Use big endianness for serialization/deserialization instead."
-    default n
-
-endmenu

@@ -70,10 +70,6 @@ config MIN_HEARTBEAT_TIME_INTERVAL
     default "1"
 endmenu
 
-config SERIALIZATION_ENDIANNESS
-    bool "Use big endiannes."
-    default y
-
 menu "Transport MTU"
 config UDP_TRANSPORT_MTU
     int "MTU value for when using UDP as a transport."
