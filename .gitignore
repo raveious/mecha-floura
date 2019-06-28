@@ -1,6 +1,10 @@
 # Ignore all of the build output
-build/*
+build
 
 # Ignore the SDK configuration because it contains things like the WiFi password...
 sdkconfig
 sdkconfig.*
+
+# Ignore all of the Visual Studio Code workspace meta data
+.vscode
+*.code-workspace
