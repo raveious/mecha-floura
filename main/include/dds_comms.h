@@ -1,4 +1,4 @@
 #include <uxr/client/client.h>
 
-void dds_task(void);
+void setup_dds_task(void);
 

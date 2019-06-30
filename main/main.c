@@ -1,11 +1,11 @@
-#include "freertos/FreeRTOS.h"
-#include "esp_wifi.h"
-#include "esp_system.h"
-#include "esp_event.h"
-#include "esp_event_loop.h"
-#include "nvs_flash.h"
-#include "driver/gpio.h"
-#include <dds_comms.h>
+#include <freertos/FreeRTOS.h>
+#include <esp_wifi.h>
+#include <esp_system.h>
+#include <esp_event.h>
+#include <esp_event_loop.h>
+#include <driver/gpio.h>
+#include <nvs_flash.h>
+#include "dds_comms.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -27,7 +27,7 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
         default:
             break;
     }
-    
+
     return ESP_OK;
 }
 
@@ -51,7 +51,7 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
-    dds_task();
+    setup_dds_task();
 
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
     int level = 0;
