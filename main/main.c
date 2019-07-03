@@ -19,8 +19,11 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
         case SYSTEM_EVENT_STA_CONNECTED:
             /* enable ipv6 */
             tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_STA);
+            
+            start_dds_task();
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
+            stop_dds_task();
             /* This is a workaround as ESP32 WiFi libs don't currently auto-reassociate. */
             esp_wifi_connect();
             break;
@@ -50,8 +53,6 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
-
-    setup_dds_task();
 
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
     int level = 0;
