@@ -9,6 +9,10 @@ RUN git clone --depth 1 --recursive --single-branch https://github.com/eProsima/
 WORKDIR /micro/build
 RUN cmake -DTHIRDPARTY=ON -DVERBOSE=ON -DEPROSIMA_BUILD_EXAMPLES=ON .. && make install
 
+# Hot fix until the agent can be moved into a real location
+WORKDIR /micro/build/uagent/src/agent-build
+CMD ./MicroXRCEAgent $AGENT_CONN_TYPE -p $AGENT_CONN_PORT -d --disport $AGENT_DISC_PORT -v 6 < /dev/null
+
 # Production container should only container the executable
 #FROM alpine:3.8
 
@@ -25,4 +29,4 @@ RUN cmake -DTHIRDPARTY=ON -DVERBOSE=ON -DEPROSIMA_BUILD_EXAMPLES=ON .. && make i
 #COPY --from=builder /usr/local/examples/* /usr/local/examples/FastRTPS/
 #COPY --from=builder /usr/local/bin/* /usr/local/bin/
 
-#CMD MicroXRCEAgent $AGENT_CONN_TYPE $AGENT_CONN_PORT $AGENT_DISC_PORT < /dev/null
+#CMD MicroXRCEAgent $AGENT_CONN_TYPE -p $AGENT_CONN_PORT -d --disport $AGENT_DISC_PORT < /dev/null
