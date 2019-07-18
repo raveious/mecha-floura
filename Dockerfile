@@ -22,6 +22,7 @@ RUN yum install -y epel-release && \
         gcc-c++ \
         gdb \
         gdb-gdbserver \
+        openocd \
         wget \
         ncurses-devel \
         flex \
