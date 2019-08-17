@@ -15,4 +15,4 @@ for dev in "$@"; do
     fi
 done
 
-docker run -it --rm -u $(id -u $UID):$(id -g $UID) $device_arg -v $repo_dir:/$repo_name $repo_name
+docker run -it --rm -u $(id -u $UID):$(id -g $UID) --group-add dialout $device_arg -v $repo_dir:/$repo_name $repo_name
