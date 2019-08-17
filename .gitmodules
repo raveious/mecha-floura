@@ -1,3 +1,9 @@
 [submodule "idl"]
 	path = idl
 	url = git@github.com:raveious/home-automation-idl.git
+[submodule "components/microcdr"]
+	path = components/microcdr
+	url = https://github.com/raveious/esp-microcdr
+[submodule "components/xrce-dds-client"]
+	path = components/xrce-dds-client
+	url = https://github.com/raveious/esp-xrce-dds-client
