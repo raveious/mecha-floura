@@ -6,26 +6,42 @@
 #include <stdlib.h>
 #include <esp_wifi.h>
 
+#include "dds_comms.h"
+
+// Transport information
+#ifdef CONFIG_PROFILE_UDP_TRANSPORT
+#define MAX_TRANSPORT_MTU UXR_CONFIG_UDP_TRANSPORT_MTU
+
+uxrUDPTransport transport;
+uxrUDPPlatform platform;
+
+#elif defined(CONFIG_PROFILE_TCP_TRANSPORT)
+#define MAX_TRANSPORT_MTU UXR_CONFIG_TCP_TRANSPORT_MTU
+
+uxrTCPTransport transport;
+uxrTCPPlatform platform;
+
+#else
+#error No transport was selected.
+#endif
+
+typedef enum {
+    CREATE_PARTICIPANT = 0,
+    CREATE_TOPIC,
+    CREATE_SUBSCRIBER,
+    CREATE_DATA_READER,
+    LISTEN
+} xrce_state_t;
+
 // Handle to save for the dds task
 TaskHandle_t dds_data_task = NULL;
-// TaskHandle_t agend_discovery_task = NULL;
+// TaskHandle_t agent_discovery_task = NULL;
 
 // Selected agent to use
 uxrAgentAddress chosen_agent = { CONFIG_UXR_DISCOVERY_IP, CONFIG_UXR_DISCOVERY_PORT };
 
 // Session that was created
 uxrSession session;
-
-// Transport information
-#ifdef CONFIG_PROFILE_UDP_TRANSPORT
-uxrUDPTransport transport;
-uxrUDPPlatform platform;
-#elif defined(CONFIG_PROFILE_TCP_TRANSPORT)
-uxrTCPTransport transport;
-uxrTCPPlatform platform;
-#else
-#error No transport was selected.
-#endif
 
 // void on_agent_found(const uxrAgentAddress* address, void* args) {
 //     (void) args;
@@ -59,6 +75,42 @@ uxrTCPPlatform platform;
 //     #endif
 // }
 
+void on_session_status(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uint8_t status, void* args)
+{
+    (void) session; (void) object_id; (void) request_id; (void) args;
+    
+    printf("XRCE Session Status: %u\n", status);
+}
+
+void on_topic_status(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* serialization, void* args)
+{
+    (void) session; (void) object_id; (void) request_id; (void) stream_id; (void) serialization; (void) args;
+
+    printf("Receiving... \n");
+}
+
+bool configure_transport(void) {
+
+    // Setup the transport
+    #ifdef CONFIG_PROFILE_UDP_TRANSPORT
+    if (uxr_init_udp_transport(&transport, &platform, chosen_agent.ip, chosen_agent.port)) {
+        printf("Successfully created UDP XRCE transport.\n");
+
+        return true;
+    }
+    #else
+    if (uxr_init_tcp_transport(&transport, &platform, chosen_agent.ip, chosen_agent.port)) {
+        printf("Successfully created UDP XRCE transport.\n");
+
+        return true;
+    }
+    #endif
+
+    printf("Failed to create transport.\n");
+
+    return false;
+}
+
 void dds_task(void* parms) {
     (void) parms;
 
@@ -78,22 +130,16 @@ void dds_task(void* parms) {
     //     }
     // }
 
-    // Setup the transport
-    #ifdef CONFIG_PROFILE_UDP_TRANSPORT
-    if (!uxr_init_udp_transport(&transport, &platform, chosen_agent.ip, chosen_agent.port)) {
-        printf("Failed to create transport.");
-        // return;
+    // Configure the selected XRCE transport.
+    if (!configure_transport()) {
+        stop_dds_task();
     }
-    #else
-    if (!uxr_init_tcp_transport(&transport, &platform, chosen_agent.ip, chosen_agent.port)) {
-        printf("Failed to create transport.");
-        // return;
-    }
-    #endif
 
+    // Get the mac address from the wifi radio
     uint8_t mac_addr[6];
     esp_wifi_get_mac(ESP_IF_WIFI_STA, mac_addr);
 
+    // Take only the last 4 bytes of the MAC address, as those are going to be different from device to device.
     uint32_t session_id = 0;
     session_id |= mac_addr[2];
     session_id <<= 8;
@@ -103,7 +149,12 @@ void dds_task(void* parms) {
     session_id <<= 8;
     session_id |= mac_addr[5];
 
+    // Setup a XRCE session with a callbacks
     uxr_init_session(&session, &transport.comm, session_id);
+    uxr_set_status_callback(&session, on_session_status, NULL);
+    uxr_set_topic_callback(&session, on_topic_status, NULL);
+
+    // Establish the connection
     if (!uxr_create_session(&session))
     {
         printf("Failed to create session with agent.\n");
@@ -111,14 +162,97 @@ void dds_task(void* parms) {
         printf("Key: 0x%02hhX 0x%02hhX 0x%02hhX 0x%02hhX\n", session.info.key[0], session.info.key[1], session.info.key[2], session.info.key[3]);
         printf("Requested Status: %hu\n", session.info.last_requested_status);
         printf("Request ID: %hhu\n", session.info.last_request_id);
-        // return;
+        
+        // Stop the task if there are issues, nothing else is going to work if the session can't be created...
+        stop_dds_task();
     }
 
-    printf("Node online!");
-    fflush(stdout);
+    for(int i = 0; i < UXR_CONFIG_MAX_INPUT_BEST_EFFORT_STREAMS; ++i)
+    {
+        (void) uxr_create_input_best_effort_stream(&session);
+    }
+
+    uxrStreamId output_stream = uxr_stream_id(0, UXR_RELIABLE_STREAM, UXR_OUTPUT_STREAM);
+
+    uxrObjectId participant_id = uxr_object_id(0, UXR_PARTICIPANT_ID);
+    uxrObjectId topic_id = uxr_object_id(0, UXR_TOPIC_ID);
+    uxrObjectId subscriber_id = uxr_object_id(0, UXR_SUBSCRIBER_ID);
+    uxrObjectId datareader_id = uxr_object_id(0, UXR_DATAREADER_ID);
+
+    // Create some state trackers to keep track of which stage we are in setting up the comms
+    xrce_state_t conn_state = CREATE_PARTICIPANT;
+    xrce_state_t next_conn_state = CREATE_TOPIC;
+
+    // task event loop
     while(true) {
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-        printf("Sleepy node ZZZZZZZzzzzzz......");
+        // Process the different connection states
+        switch (conn_state)
+        {
+        case CREATE_PARTICIPANT:
+            (void) uxr_buffer_create_participant_ref(&session,
+                                                     output_stream,
+                                                     participant_id,
+                                                     42,
+                                                     "default_weather_participant",
+                                                     UXR_REUSE | UXR_REPLACE);
+
+            next_conn_state = CREATE_TOPIC;
+            break;
+
+        case CREATE_TOPIC:
+            (void) uxr_buffer_create_topic_ref(&session,
+                                               output_stream,
+                                               topic_id,
+                                               participant_id,
+                                               "weather_conditions_topic",
+                                               UXR_REUSE | UXR_REPLACE);
+
+            next_conn_state = CREATE_SUBSCRIBER;
+            break;
+
+        case CREATE_SUBSCRIBER:
+            // There doesn't seem to be a ref version of this?
+            // The example seems to just pass an empty string into the xml field...
+            (void) uxr_buffer_create_subscriber_xml(&session,
+                                                    output_stream,
+                                                    subscriber_id,
+                                                    participant_id,
+                                                    "", // Example uses empty string, not sure why this works...
+                                                    UXR_REUSE | UXR_REPLACE);
+
+            next_conn_state = CREATE_DATA_READER;
+            break;
+        
+        case CREATE_DATA_READER:
+            (void) uxr_buffer_create_datareader_ref(&session,
+                                                    output_stream,
+                                                    datareader_id,
+                                                    subscriber_id,
+                                                    "weather_conditions_data_reader",
+                                                    UXR_REUSE | UXR_REPLACE);
+
+            next_conn_state = LISTEN;
+            break;
+        
+        case LISTEN:
+            break;
+        
+        default:
+            printf("Unknown state reached.\n");
+            break;
+        }
+
+        // uxr_run_session* will 
+        if (uxr_run_session_time(&session, 100)) {
+            if (conn_state != next_conn_state) {
+                printf("State transition %u -> %u\n", conn_state, next_conn_state);
+                conn_state = next_conn_state;
+            }
+        } else {
+            printf("Run session returned error.\n");
+        }
+
+        // stop_dds_task();
     }
 }
 
