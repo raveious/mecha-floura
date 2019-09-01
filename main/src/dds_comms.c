@@ -25,6 +25,13 @@ uxrTCPPlatform platform;
 #error No transport was selected.
 #endif
 
+#define MAX_HISTORY     8
+#define STREAM_HISTORY  4
+#define BUFFER_SIZE     MAX_TRANSPORT_MTU * MAX_HISTORY
+
+static uint8_t output_reliable_stream_buffer[BUFFER_SIZE];
+static uint8_t  input_reliable_stream_buffer[BUFFER_SIZE];
+
 typedef enum {
     CREATE_PARTICIPANT = 0,
     CREATE_TOPIC,
@@ -167,21 +174,33 @@ void dds_task(void* parms) {
         stop_dds_task();
     }
 
-    for(int i = 0; i < UXR_CONFIG_MAX_INPUT_BEST_EFFORT_STREAMS; ++i)
+    for(uint32_t i = 0; i < UXR_CONFIG_MAX_INPUT_RELIABLE_STREAMS; ++i)
     {
-        (void) uxr_create_input_best_effort_stream(&session);
+        (void) uxr_create_input_reliable_stream(&session, input_reliable_stream_buffer + (BUFFER_SIZE * i), transport.comm.mtu * STREAM_HISTORY, STREAM_HISTORY);
+    }
+    
+    for(uint32_t i = 0; i < UXR_CONFIG_MAX_OUTPUT_RELIABLE_STREAMS; ++i)
+    {
+        (void) uxr_create_output_reliable_stream(&session, output_reliable_stream_buffer + (BUFFER_SIZE * i), transport.comm.mtu * STREAM_HISTORY, STREAM_HISTORY);
     }
 
-    uxrStreamId output_stream = uxr_stream_id(0, UXR_RELIABLE_STREAM, UXR_OUTPUT_STREAM);
+    uxrStreamId input_stream   = uxr_stream_id(0, UXR_RELIABLE_STREAM, UXR_INPUT_STREAM);
+    uxrStreamId output_stream  = uxr_stream_id(0, UXR_RELIABLE_STREAM, UXR_OUTPUT_STREAM);
 
-    uxrObjectId participant_id = uxr_object_id(0, UXR_PARTICIPANT_ID);
-    uxrObjectId topic_id = uxr_object_id(0, UXR_TOPIC_ID);
-    uxrObjectId subscriber_id = uxr_object_id(0, UXR_SUBSCRIBER_ID);
-    uxrObjectId datareader_id = uxr_object_id(0, UXR_DATAREADER_ID);
+    uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
+    uxrObjectId topic_id       = uxr_object_id(0x01, UXR_TOPIC_ID);
+    uxrObjectId subscriber_id  = uxr_object_id(0x01, UXR_SUBSCRIBER_ID);
+    uxrObjectId datareader_id  = uxr_object_id(0x01, UXR_DATAREADER_ID);
+
+    uxrDeliveryControl delivery_control = {0};
+    delivery_control.max_samples = 1;
 
     // Create some state trackers to keep track of which stage we are in setting up the comms
     xrce_state_t conn_state = CREATE_PARTICIPANT;
     xrce_state_t next_conn_state = CREATE_TOPIC;
+
+    uint8_t action_status = 0;
+    uint16_t request_ref = 0;
 
     // task event loop
     while(true) {
@@ -189,23 +208,23 @@ void dds_task(void* parms) {
         switch (conn_state)
         {
         case CREATE_PARTICIPANT:
-            (void) uxr_buffer_create_participant_ref(&session,
-                                                     output_stream,
-                                                     participant_id,
-                                                     42,
-                                                     "default_weather_participant",
-                                                     UXR_REUSE | UXR_REPLACE);
+            request_ref = uxr_buffer_create_participant_ref(&session,
+                                                            output_stream,
+                                                            participant_id,
+                                                            42,
+                                                            "default_weather_participant",
+                                                            UXR_REUSE | UXR_REPLACE);
 
             next_conn_state = CREATE_TOPIC;
             break;
 
         case CREATE_TOPIC:
-            (void) uxr_buffer_create_topic_ref(&session,
-                                               output_stream,
-                                               topic_id,
-                                               participant_id,
-                                               "weather_conditions_topic",
-                                               UXR_REUSE | UXR_REPLACE);
+            request_ref = uxr_buffer_create_topic_ref(&session,
+                                                      output_stream,
+                                                      topic_id,
+                                                      participant_id,
+                                                      "weather_conditions_topic",
+                                                      UXR_REUSE | UXR_REPLACE);
 
             next_conn_state = CREATE_SUBSCRIBER;
             break;
@@ -213,28 +232,35 @@ void dds_task(void* parms) {
         case CREATE_SUBSCRIBER:
             // There doesn't seem to be a ref version of this?
             // The example seems to just pass an empty string into the xml field...
-            (void) uxr_buffer_create_subscriber_xml(&session,
-                                                    output_stream,
-                                                    subscriber_id,
-                                                    participant_id,
-                                                    "", // Example uses empty string, not sure why this works...
-                                                    UXR_REUSE | UXR_REPLACE);
+            request_ref = uxr_buffer_create_subscriber_xml(&session,
+                                                           output_stream,
+                                                           subscriber_id,
+                                                           participant_id,
+                                                           "", // Example uses empty string, not sure why this works...
+                                                           UXR_REUSE | UXR_REPLACE);
 
             next_conn_state = CREATE_DATA_READER;
             break;
         
         case CREATE_DATA_READER:
-            (void) uxr_buffer_create_datareader_ref(&session,
-                                                    output_stream,
-                                                    datareader_id,
-                                                    subscriber_id,
-                                                    "weather_conditions_data_reader",
-                                                    UXR_REUSE | UXR_REPLACE);
+            request_ref = uxr_buffer_create_datareader_ref(&session,
+                                                           output_stream,
+                                                           datareader_id,
+                                                           subscriber_id,
+                                                           "weather_conditions_data_reader",
+                                                           UXR_REUSE | UXR_REPLACE);
 
             next_conn_state = LISTEN;
             break;
         
         case LISTEN:
+            request_ref = uxr_buffer_request_data(&session,
+                                                  output_stream,
+                                                  datareader_id,
+                                                  input_stream,
+                                                  &delivery_control);
+
+            next_conn_state = LISTEN;
             break;
         
         default:
@@ -243,7 +269,8 @@ void dds_task(void* parms) {
         }
 
         // uxr_run_session* will 
-        if (uxr_run_session_time(&session, 100)) {
+        if (uxr_run_session_until_all_status(&session, 1000, &request_ref, &action_status, 1)) {
+
             if (conn_state != next_conn_state) {
                 printf("State transition %u -> %u\n", conn_state, next_conn_state);
                 conn_state = next_conn_state;
@@ -251,8 +278,6 @@ void dds_task(void* parms) {
         } else {
             printf("Run session returned error.\n");
         }
-
-        // stop_dds_task();
     }
 }
 
