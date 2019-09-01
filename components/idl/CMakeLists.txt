@@ -26,4 +26,6 @@ endforeach(bar)
 
 file(GLOB_RECURSE COMPONENT_SRCS "${CMAKE_BINARY_DIR}/generated/*/*.c")
 
+set(COMPONENT_PRIV_REQUIRES microcdr newlib)
+
 register_component()
